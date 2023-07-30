@@ -158,17 +158,3 @@ Join PortfolioProject..CovidVaccinations vac
 	and dea.date = vac.date
 where dea.continent is not null 
 
-
-
---death count of vaccinated people
--- view not created nor imported to Tableau
-
---Create View DeathCountVaccinated as
---Select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations, vac.people_vaccinated, dea.total_deaths, (dea.total_deaths/vac.people_vaccinated)*100 as PercentDeathAndVaccinated
---, SUM(CONVERT(bigint,vac.new_vaccinations)) OVER (Partition by dea.Location Order by dea.location, dea.Date) as RollingPeopleVaccinated
-----, (RollingPeopleVaccinated/population)*100
---From PortfolioProject..CovidDeaths dea
---Join PortfolioProject..CovidVaccinations vac
---	On dea.location = vac.location
---	and dea.date = vac.date
---where dea.continent is not null AND vac.new_vaccinations is not null
