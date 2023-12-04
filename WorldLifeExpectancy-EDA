@@ -1,0 +1,172 @@
+# World Life Expectancy Project EDA (Exploritory Data Analysis)
+
+-- two parts to EDA
+-- usually in conjuction with data cleaning, AGG functions and group bys, looking at the data to see what can be fixed
+-- the second part of EDA is done to find insights and trends in the data
+
+SELECT *
+FROM world_life_expectancy
+;
+
+-- which countries increased life expectancy the most?
+-- MIN and MAX of each country 
+-- GROUP BY country to get the min and max of each country
+
+
+SELECT Country, MIN(`Life expectancy`), MAX(`Life expectancy`)
+FROM world_life_expectancy
+GROUP BY Country
+ORDER BY Country DESC
+;
+
+-- 0 values for `life expectancy` may be bad data quality
+-- filtering out the 0 for `life expectancy`
+
+SELECT Country, MIN(`Life expectancy`), MAX(`Life expectancy`)
+FROM world_life_expectancy
+GROUP BY Country
+HAVING MIN(`Life expectancy`) <> 0
+AND MAX(`Life expectancy`) <> 0
+ORDER BY Country DESC
+;
+
+-- which countries recorded the biggest improved life expectancy?
+-- this difference is rounded to 1 decimal point
+-- ordered by Life_Increase_15_Years
+
+-- County, Min/Max Life expectancy
+
+SELECT Country,
+MIN(`Life expectancy`), 
+MAX(`Life expectancy`),
+ROUND(MAX(`Life expectancy`) - MIN(`Life expectancy`),1) AS Life_Increase_15_Years
+FROM world_life_expectancy
+GROUP BY Country
+HAVING MIN(`Life expectancy`) <> 0
+AND MAX(`Life expectancy`) <> 0
+ORDER BY Life_Increase_15_Years DESC
+;
+
+-- the average life_expectancy for each year
+-- '0s' removed to prevent them from affecting the average
+-- average not affected by removing '0's
+-- 0's filtered out in WHERE statement 
+-- HAVING statement is for AGG functions
+
+-- Average life expectancy for each year for all countries combined
+
+SELECT Year, ROUND(AVG(`Life expectancy`),2)
+FROM world_life_expectancy
+WHERE `Life expectancy` <> 0
+AND `Life expectancy` <> 0
+GROUP BY Year
+ORDER BY Year
+;
+-- average increase, as a whole, from year 2007 (66.75 years) to year 2022 (71.62 years) is about 4.87 years
+
+SELECT *
+FROM world_life_expectancy
+
+
+-- group by country
+-- a country's average life expectancy and average GDP
+-- exclude 0s
+-- order by GDP
+
+-- Life expectancy vs GDP
+
+SELECT Country, ROUND(AVG(`Life expectancy`),1) AS Life_Exp, ROUND(AVG(GDP),1) AS GDP
+FROM world_life_expectancy
+GROUP BY Country
+HAVING Life_Exp > 0
+AND GDP > 0
+ORDER BY GDP ASC
+;
+
+-- findings: Lower GDP is correlated with lower life expectancy
+-- findings: Higher GDP is correlated with longer life expectancy
+-- upload into data visualization software to confirm correlations
+
+-- CASE STATEMENT
+-- counting the amount of countries with a GDP over 1500, and another group of countries above 1500
+
+-- High GDP vs Low GDP life expectancy
+
+SELECT 
+	SUM(CASE WHEN GDP >= 1500 THEN 1 ELSE 0 END) High_GDP_Count,
+    ROUND(AVG(CASE WHEN GDP >= 1500 THEN `Life expectancy` ELSE NULL END),1) High_GDP_Life_Expectancy,
+	SUM(CASE WHEN GDP <= 1500 THEN 1 ELSE 0 END) Low_GDP_Count,
+    ROUND(AVG(CASE WHEN GDP <= 1500 THEN `Life expectancy` ELSE NULL END),1) Low_GDP_Life_Expectancy
+FROM world_life_expectancy
+;
+
+# Findings:
+-- 1326 rows have a GDP above 1500
+-- countries with a GDP higher than 1500 have a life expectancy of 74 years
+-- countries with a GDP lower than 1500 have a life expectancy of 65 years
+-- low GDP countries have a life expectancy that is ~10 years lower than High GDP countries
+
+
+
+-- AVG life expectancy for Developing vs Developed countries
+
+
+SELECT Status, ROUND(AVG(`Life expectancy`),1)
+FROM world_life_expectancy
+GROUP BY Status
+;
+
+-- Findings:
+-- Average life expectancy for Developing countries is 66.8 years
+-- Average life expectancy for Developed countries is 79.2 years
+
+
+
+SELECT Status, COUNT(DISTINCT Country),  ROUND(AVG(`Life expectancy`),1)
+FROM world_life_expectancy
+GROUP BY Status
+;
+
+-- combined the 2 above queries
+
+# Findings
+-- Count of Developed countries is 32
+-- Count of Developing countries is 161
+-- Life expectancy is skewed in favor of the developed countries since there are fewer of them
+
+-- output the Country, AVG life expectancy, and AVG BMI, both rounded to the 1st decimal place
+-- exclude 0 values for BMI
+-- countries must have life expectancy and BMI greater than 0
+
+SELECT Country, ROUND(AVG(`Life expectancy`),1) AS Life_Exp, ROUND(AVG(BMI),1) AS BMI
+FROM world_life_expectancy
+GROUP BY Country
+HAVING Life_Exp > 0
+AND BMI > 0
+ORDER BY BMI ASC
+;
+
+# Findings
+-- lower BMI is correlated with lower life expectancies
+
+
+-- Rolling total for adult mortality of country and ordered by Year
+-- Number of Adult Mortality compared to Life expectancy
+-- Wildcard in WHERE statement selects Countries with 'United" in the name
+
+-- Total Population vs Adult Mortality vs Life experctancy
+
+SELECT Country,
+Year,
+`Life expectancy`,
+`Adult Mortality`,
+SUM(`Adult Mortality`) OVER(PARTITION BY Country ORDER BY Year) AS RollingTotal
+FROM world_life_expectancy 
+WHERE Country LIKE '%United States%'
+;
+
+
+-- For Year 2022, the life expectancy in United States of America was 79.3
+
+
+
