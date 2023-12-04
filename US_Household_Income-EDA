@@ -1,0 +1,284 @@
+# US Household Income Exploratory Data Analysis
+
+-- Data Profile for us_project.us_household_income
+-- no category for date
+-- State Name, County, City - categorical data
+-- zip code, area code
+-- Land area, Water area
+
+
+SELECT *
+FROM us_project.us_household_income;
+
+-- Data profile for us_project.us_household_income_statistics
+-- id, State_Namme
+-- Mean, Median, Standard Deviation of incomes.
+
+SELECT *
+FROM us_project.us_household_income;
+
+SELECT *
+FROM us_project.us_household_income_statistics;
+
+
+-- land area and water area by state, county, and city
+
+SELECT State_Name, County, City, ALand, AWater
+FROM us_project.us_household_income;
+
+
+-- area of land and water by state
+-- order by DESC
+
+SELECT State_Name, SUM(ALand), SUM(AWater)
+FROM us_project.us_household_income
+GROUP BY State_Name
+ORDER BY 2 DESC;
+
+# Findings
+-- Texas, California, and Missouri have the largest land area (this makes sense because these are large states
+
+-- Most Water area by state
+
+SELECT State_Name, SUM(ALand), SUM(AWater)
+FROM us_project.us_household_income
+GROUP BY State_Name
+ORDER BY 3 DESC;
+
+# Findings:
+-- Michigan, Texas, and Florida have the most Water Area.
+
+
+-- Top 10 states with the most Land area
+
+SELECT State_Name, SUM(ALand), SUM(AWater)
+FROM us_project.us_household_income
+GROUP BY State_Name
+ORDER BY 2 DESC
+LIMIT 10;
+
+# Findings
+-- Texas, California, and Missouri are the top 3 States by Land area
+
+
+-- Top 10 States by Water Area
+
+SELECT State_Name, SUM(ALand), SUM(AWater)
+FROM us_project.us_household_income
+GROUP BY State_Name
+ORDER BY 3 DESC
+LIMIT 10;
+
+# Findings
+-- Michigan, Texas, and Florida are the top 3 states by Water Area
+
+
+-- joining the two tables
+
+SELECT *
+FROM us_project.us_household_income;
+
+SELECT *
+FROM us_project.us_household_income_statistics;
+
+--
+
+SELECT *
+FROM us_project.us_household_income u
+JOIN us_project.us_household_income_statistics us
+	ON u.id = us.id;
+
+-- RIGHT JOIN s to u 
+-- check for NULL values
+
+
+SELECT *
+FROM us_project.us_household_income u
+INNER JOIN us_project.us_household_income_statistics us
+	ON u.id = us.id
+WHERE u.id IS NULL;
+
+# Findinngs
+-- lots of 0s reported  as the Mean income
+
+-- show only the data where Mean <> -
+
+SELECT *
+FROM us_project.us_household_income u
+INNER JOIN us_project.us_household_income_statistics us
+	ON u.id = us.id
+WHERE Mean <> 0;
+
+
+-- State name, county, type, primary
+
+SELECT u.State_Name, County, Type, `Primary`, Mean, Median
+FROM us_project.us_household_income u
+INNER JOIN us_project.us_household_income_statistics us
+	ON u.id = us.id
+WHERE Mean <> 0;
+
+
+-- return the State Name, AVG(mean), AVG(median)
+-- group by State Name
+
+SELECT u.State_Name, ROUND(AVG(Mean),1), ROUND(AVG(Median),1)
+FROM us_project.us_household_income u
+INNER JOIN us_project.us_household_income_statistics us
+	ON u.id = us.id
+WHERE Mean <> 0
+GROUP BY u.State_Name
+ORDER BY 2
+LIMIT 5
+;
+
+# Findings 
+-- lowest household income is Peurto Rico
+-- lowest income in the continental US is Mississippi
+-- Top 5 lowest income states: Peurto Rico, Mississippi, Arkansas, West Virginia, Alabama
+
+
+-- Highest income states
+
+SELECT u.State_Name, ROUND(AVG(Mean),1), ROUND(AVG(Median),1)
+FROM us_project.us_household_income u
+INNER JOIN us_project.us_household_income_statistics us
+	ON u.id = us.id
+WHERE Mean <> 0
+GROUP BY u.State_Name
+ORDER BY 2 DESC
+LIMIT 5
+;
+
+# Findings
+-- top 5 highest income states: Dist. of Col., Connecticut, New Jersey, Maryland, Massachusetts
+
+
+-- the highest median incomes
+
+SELECT u.State_Name, ROUND(AVG(Mean),1), ROUND(AVG(Median),1)
+FROM us_project.us_household_income u
+INNER JOIN us_project.us_household_income_statistics us
+	ON u.id = us.id
+WHERE Mean <> 0
+GROUP BY u.State_Name
+ORDER BY 3 DESC
+LIMIT 5
+;
+
+# Findings
+-- States with the highest median incomes are: New Jersey, Whyoming, Alaska, Connnecticut, Massachusetts
+
+
+-- states with the lowest median incomes
+
+SELECT u.State_Name, ROUND(AVG(Mean),1), ROUND(AVG(Median),1)
+FROM us_project.us_household_income u
+INNER JOIN us_project.us_household_income_statistics us
+	ON u.id = us.id
+WHERE Mean <> 0
+GROUP BY u.State_Name
+ORDER BY u.State_Name DESC
+LIMIT 5
+;
+
+# Findings:
+-- states with the lowest average incomes are: Peurto Rico, Arkansas, Missisippi, Louisiana, Oklahoma
+-- There are many states where the Median household income is above the average.
+
+
+-- the average mean income for the type of area
+
+SELECT Type, COUNT(Type), ROUND(AVG(Mean),1), ROUND(AVG(Median),1)
+FROM us_project.us_household_income u
+INNER JOIN us_project.us_household_income_statistics us
+	ON u.id = us.id
+WHERE Mean <> 0
+GROUP BY Type
+ORDER BY 3 DESC
+LIMIT 20
+;
+
+# Findings
+-- the top 3 types of locations with the highest average median is: Municipality, Borough, Track
+-- there is only 1 count of Municpality
+-- the lowest 3 types are Community, Urban, and County
+-- Track types make us the majority of the Types (28,939) entries
+
+
+SELECT Type, COUNT(Type), ROUND(AVG(Mean),1), ROUND(AVG(Median),1)
+FROM us_project.us_household_income u
+INNER JOIN us_project.us_household_income_statistics us
+	ON u.id = us.id
+WHERE Mean <> 0
+GROUP BY 1
+ORDER BY 3 DESC
+LIMIT 20
+;
+
+# Findings
+-- Municipalty has a count of 1 plus a high mean income and high median income
+
+
+
+SELECT Type, COUNT(Type), ROUND(AVG(Mean),1), ROUND(AVG(Median),1)
+FROM us_project.us_household_income u
+INNER JOIN us_project.us_household_income_statistics us
+	ON u.id = us.id
+WHERE Mean <> 0
+GROUP BY 1
+HAVING COUNT(Type) > 100
+ORDER BY 4 DESC
+LIMIT 20
+;
+
+# Findings
+-- the Median income for Type CDP 116276.6) is significantly higher than the Mean income for Type CDP (64623.3)
+-- what state has 'Community' type?
+
+SELECT *
+FROM  us_project.us_household_income
+WHERE Type = 'Community'
+;
+
+-- Peurto Rico has the 'Community' type
+-- this is in line with Peuro Rico having a low average income
+
+
+-- filtering out low outliers for Type
+
+
+SELECT Type, COUNT(Type), ROUND(AVG(Mean),1), ROUND(AVG(Median),1)
+FROM us_project.us_household_income u
+INNER JOIN us_project.us_household_income_statistics us
+	ON u.id = us.id
+WHERE Mean <> 0
+GROUP BY 1
+ORDER BY 3 DESC
+LIMIT 20
+;
+
+# Findings
+-- Municipalty has a count of 1 plus a high mean income and high median income
+-- Community Type is at the bottom of the list for income
+
+SELECT *
+FROM us_household_income
+WHERE Type = 'Community';
+
+# Findings
+-- The Commmunity type is from Peurto Rico
+
+-- The average income by city and state
+-- order by average Mean income for easch city
+
+SELECT u.State_Name, City, ROUND(AVG(Mean),1), ROUND(AVG(Median),1)
+FROM us_project.us_household_income u
+JOIN us_project.us_household_income_statistics us
+	ON u.id = us.id
+GROUP BY u.State_Name, City
+ORDER BY ROUND(AVG(Mean),1) DESC;
+
+# Findings
+-- Delta Junctin, Alaska has the highest Mean household income
+-- Median income appears to be capped at 300000.0
