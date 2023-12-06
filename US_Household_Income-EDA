@@ -280,5 +280,5 @@ GROUP BY u.State_Name, City
 ORDER BY ROUND(AVG(Mean),1) DESC;
 
 # Findings
--- Delta Junctin, Alaska has the highest Mean household income
+-- Delta Junction, Alaska has the highest Mean household income
 -- Median income appears to be capped at 300000.0
