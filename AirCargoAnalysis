@@ -1,0 +1,292 @@
+# imported data for 4 tables; customer, passengers_on_flights, routes, ticket_details
+
+# display all the passengers (customers) who have travelled in routes 01 to 25. Take data from the passengers_on_flights table.
+
+SELECT customer_id
+FROM aircargo.passengers_on_flights
+WHERE route_id BETWEEN 1 AND 25;
+
+
+# Identify the number of passengers and total revenue in business class from the ticket_details table.
+
+-- COUNT num of passengers
+-- AGG FUN: SUM(price per ticket)
+
+
+SELECT SUM(Price_per_ticket) AS num_passengers,
+ COUNT(DISTINCT customer_id) AS total_revenue
+FROM aircargo.ticket_details
+WHERE class_id = 'Bussiness';
+
+
+#  display the full name of the customer by extracting the first name and last name from the customer table.
+
+SELECT first_name, last_name
+FROM aircargo.customer;
+
+-- CONCAT first_name and last_name as full_name
+
+SELECT CONCAT(first_name,' ',last_name) AS full_name
+FROM aircargo.customer;
+
+
+# extract the customers who have registered and booked a ticket. Use data from the customer and ticket_details tables.
+
+-- JOIN: customer id
+-- FILTER: those who have bought a ticket
+
+
+SELECT c.first_name, c.last_name, CONCAT(c.first_name,' ',c.last_name) AS full_name
+FROM aircargo.customer c
+WHERE c.customer_id IN
+(SELECT c.customer_id
+	FROM aircargo.customer c
+	JOIN aircargo.ticket_details td
+	ON c.customer_id = td.customer_id
+	WHERE td.no_of_tickets > 0) 
+;
+
+# identify the customer’s first name and last name based on their customer ID and brand (Emirates) from the ticket_details table.
+
+-- OUTPUT: first_name, last_name
+-- FILTER: f name, last name based on customer id and brand (Emirates) from ticket_details
+-- JOIN customer table to ticket details table
+
+SELECT c.first_name, c.last_name
+	FROM aircargo.customer c
+	JOIN aircargo.ticket_details td
+	ON c.customer_id = td.customer_id
+WHERE td.brand = 'Emirates';
+
+
+# identify the customers who have travelled by Economy Plus class using Group By and Having clause on the passengers_on_flights table.
+
+-- FILTER: filter for Economy Plus class - use Group By and HAVING clause
+
+SELECT customer_id
+FROM aircargo.passengers_on_flights
+WHERE class_id = 'Economy Plus'
+GROUP BY customer_id
+HAVING COUNT(*) > 0;
+
+
+# identify whether the revenue has crossed 10000 using the IF clause on the ticket_details table.
+
+-- IF function: if total revenue surpassed 10000, 'Yes', 'No'
+-- AGG FUN: SUM(Price_per_ticket)
+
+
+SELECT
+    SUM(Price_per_ticket) AS total_revenue,
+    IF(SUM(Price_per_ticket) > 10000, 'Yes', 'No') AS crossed_1000
+FROM
+    aircargo.ticket_details;
+
+
+# create and grant access to a new user to perform operations on a database.
+
+-- CREATE USER: 'xxxxx', @ localhost, IDENTIFIED BY 'password'
+-- Grant privileges to the user: 
+-- Flush privileges to apply changes
+
+CREATE USER 'new_user'@'localhost' IDENTIFIED BY 'abc123';
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON aircargo.* TO 'new_user'@'localhost';
+
+FLUSH PRIVILEGES;
+
+
+# the maximum ticket price for each class using window functions on the ticket_details table.
+-- GROUP BY class_id
+-- AGG FUN: MAX(Price_per_ticket)
+
+SELECT MAX(Price_per_ticket) AS Max_ticket_price
+FROM aircargo.ticket_details
+GROUP BY class_id;
+
+
+# The passengers whose route ID is 4 by improving the speed and performance of the passengers_on_flights table.
+
+-- OUTPUT: route id is 4
+
+SELECT *
+FROM aircargo.passengers_on_flights
+WHERE route_id = 4
+;
+
+
+#  Calculate the total price of all tickets booked by a customer across different aircraft IDs using rollup function.
+-- AGG FUN: SUM(Price per ticket) WITH ROLLUP 
+-- Customers who flew on different aircraft 
+
+
+SELECT
+customer_id,    
+aircraft_id,
+SUM(Price_per_ticket) AS total_price,
+COUNT(aircraft_id)
+FROM
+aircargo.ticket_details
+GROUP BY
+customer_id, aircraft_id WITH ROLLUP
+HAVING COUNT(aircraft_id) > 1
+;
+
+
+# Create a view with only business class customers along with the brand of airlines.
+
+-- OUTPUT: business class customers with brand of airlines
+-- JOIN customers table ON customer id
+-- CREATE VIEW - view of customer name, cust id, class id, brand
+
+
+CREATE VIEW bus_travelers AS
+SELECT CONCAT(first_name,' ', last_name) AS Customer_name,
+c.customer_id, 
+td.class_id, 
+td.brand
+FROM aircargo.customer c
+JOIN aircargo.ticket_details td
+ON c.customer_id = td.customer_id
+WHERE class_id = 'Bussiness' 
+;
+
+# Create a stored procedure to get the details of all passengers flying between a range of routes defined in run time. Also, return an error message if the table doesn't exist.
+
+-- CREATE PROCEDURE: returns details of passengers flying between range of routes,
+-- use route range as parameters and return passenger details
+-- error message if the table doesn't exist
+
+
+SELECT *
+FROM aircargo.routes;
+
+DESCRIBE aircargo.ticket_details;
+
+-- get start and end route values
+
+DELIMITER //
+
+CREATE PROCEDURE GetPassengerDetailsInRange(
+    IN start_route INT,
+    IN end_route INT
+)
+BEGIN
+    DECLARE table_exists INT;
+
+    -- Check if the table exists
+    SELECT COUNT(*)
+    INTO table_exists
+    FROM information_schema.tables
+    WHERE table_name = 'passengers_on_flights';
+
+    IF table_exists > 0 THEN
+        -- Table exists, retrieve passenger details
+        SELECT
+            C.customer_id,
+            C.first_name,
+            C.last_name,
+            POF.route_id,
+            POF.aircraft_id,
+            POF.depart,
+            POF.arrival,
+            POF.seat_num,
+            POF.class_id,
+            POF.travel_date,
+            POF.flight_num
+        FROM
+            passengers_on_flights POF
+        JOIN
+            customer C ON POF.customer_id = C.customer_id
+        WHERE
+            POF.route_id BETWEEN start_route AND end_route;
+    ELSE
+        -- Table doesn't exist, return an error message
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Error: Passengers on flights table does not exist';
+    END IF;
+END //
+
+DELIMITER ;
+	
+
+# Create a stored procedure that groups the distance travelled by each flight into three categories. The categories are, short distance, travel (SDT) for >=0 AND <= 2000 miles, intermediate distance travel (IDT) for >2000 AND <=6500, and long-distance travel (LDT) for >6500.
+
+
+DELIMITER //
+
+CREATE PROCEDURE GroupDistanceCategories()
+BEGIN
+    -- Create temporary table to store distance categories
+    CREATE TEMPORARY TABLE IF NOT EXISTS DistanceCategories (
+        flight_num INT,
+        distance_category VARCHAR(20)
+    );
+
+    -- Update the DistanceCategories table based on distance ranges
+    INSERT INTO DistanceCategories (flight_num, distance_category)
+    SELECT
+        R.flight_num,
+        CASE
+            WHEN R.distance_miles >= 0 AND R.distance_miles <= 2000 THEN 'Short Distance Travel (SDT)'
+            WHEN R.distance_miles > 2000 AND R.distance_miles <= 6500 THEN 'Intermediate Distance Travel (IDT)'
+            WHEN R.distance_miles > 6500 THEN 'Long-distance Travel (LDT)'
+            ELSE 'Unknown'
+        END AS distance_category
+    FROM
+        routes R;
+
+    -- Select the results
+    SELECT
+        DC.flight_num,
+        R.origin_airport,
+        R.destination_airport,
+        R.distance_miles,
+        DC.distance_category
+    FROM
+        DistanceCategories DC
+    JOIN
+        routes R ON DC.flight_num = R.flight_num;
+
+    -- Drop the temporary table
+    DROP TEMPORARY TABLE IF EXISTS DistanceCategories;
+END //
+
+DELIMITER ;
+
+
+
+#  extract ticket purchase date, customer ID, class ID and specify if the complimentary services are provided for the specific class using a stored function in stored procedure on the ticket_details table.
+
+
+
+DELIMITER //
+
+CREATE FUNCTION IsComplimentaryServiceAvailable(class_id VARCHAR(255))
+RETURNS BOOLEAN
+BEGIN
+    DECLARE is_complimentary BOOLEAN;
+
+    -- Assuming there is a table named 'complimentary_services' with a column 'class_id'
+    SELECT 1 INTO is_complimentary
+    FROM complimentary_services
+    WHERE class_id = class_id;
+
+    RETURN is_complimentary;
+END //
+
+CREATE PROCEDURE GetTicketDetailsWithComplimentaryServices()
+BEGIN
+    SELECT
+        p_date AS ticket_purchase_date,
+        customer_id,
+        class_id,
+        IsComplimentaryServiceAvailable(class_id) AS complimentary_services_available
+    FROM
+        ticket_details;
+END //
+
+DELIMITER ;
+
+
+
